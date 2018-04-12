@@ -179,6 +179,7 @@ Peer.prototype.address = function () {
 Peer.prototype.signal = function (data) {
   var self = this
   if (self.destroyed) throw makeError('cannot signal after peer is destroyed', 'ERR_SIGNALING')
+  self.signalData = data
   if (typeof data === 'string') {
     try {
       data = JSON.parse(data)
@@ -567,15 +568,32 @@ Peer.prototype._onIceStateChange = function () {
 
   if (iceConnectionState === 'connected' || iceConnectionState === 'completed') {
     clearTimeout(self._reconnectTimeout)
+    clearInterval(self.reconnectPeerInterval)
     self._pcReady = true
     self._maybeReady()
   }
+  // do not destroy, try to reconnect up to 1 min
+  if (iceConnectionState === 'disconnected') {
+    clearInterval(self.reconnectPeerInterval)
+    self.reconnectPeerInterval = setInterval(function() {
+      self.signal(self.signalData);
+    }, 1000);
+  }
   if (iceConnectionState === 'failed') {
+    clearInterval(self.reconnectPeerInterval)
     self.destroy(makeError('Ice connection failed.', 'ERR_ICE_CONNECTION_FAILURE'))
   }
   if (iceConnectionState === 'closed') {
+    clearInterval(self.reconnectPeerInterval)
     self.destroy(new Error('Ice connection closed.'))
   }
+}
+
+// do not destroy, try to reconnect up to 1 min
+Peer.prototype.reconnectPeers() = function () {
+  setInterval(function() {
+      self.signal(self.signal_data);
+  }, 1000);
 }
 
 Peer.prototype.getStats = function (cb) {
