@@ -575,8 +575,15 @@ Peer.prototype._onIceStateChange = function () {
   // do not destroy, try to reconnect up to 1 min
   if (iceConnectionState === 'disconnected') {
     clearInterval(self.reconnectPeerInterval)
+    self.reconnectPeerElapsed = 0
+    
     self.reconnectPeerInterval = setInterval(function() {
       self.signal(self.signalData);
+      self.reconnectPeerElapsed += 1000
+      if (self.reconnectPeerElapsed >= 60000) {
+        clearInterval(self.reconnectPeerInterval)
+        self.reconnectPeerElapsed = 0
+      }
     }, 1000);
   }
   if (iceConnectionState === 'failed') {
@@ -587,13 +594,6 @@ Peer.prototype._onIceStateChange = function () {
     clearInterval(self.reconnectPeerInterval)
     self.destroy(new Error('Ice connection closed.'))
   }
-}
-
-// do not destroy, try to reconnect up to 1 min
-Peer.prototype.reconnectPeers() = function () {
-  setInterval(function() {
-      self.signal(self.signal_data);
-  }, 1000);
 }
 
 Peer.prototype.getStats = function (cb) {
